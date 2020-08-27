@@ -91,7 +91,9 @@ var audioContext = window.hasOwnProperty("AudioContext") ? (new AudioContext()) 
 var _WebSocket = window['WebSocket'];
 var _setInterval = setInterval;
 var _setTimeout = setTimeout;
+
 var isWelcome = false;
+var isFirst = true;
 /**
  * Rule the words! KKuTu Online
  * Copyright (C) 2017 JJoriping(op@jjo.kr)
@@ -292,8 +294,18 @@ $(document).ready(function() {
 	} else {
 		applyOptions([], true);
 	}
-
+	
 	$data.opts.istheme = $data.opts.tm === undefined ? true : $data.opts.tm;
+    $(".dialog-head .dialog-title").on('mousedown', function (e) {
+        var $pd = $(e.currentTarget).parents(".dialog");
+
+        $(".dialog-front").removeClass("dialog-front");
+        $pd.addClass("dialog-front");
+        startDrag($pd, e.pageX, e.pageY);
+    }).on('mouseup', function (e) {
+        stopDrag();
+	});
+	
 	if ($data.opts.istheme) {
 		$("#Background").attr('src', "").addClass("jt-image").css({
 			'background-image': "url(https://cdn.kkutu.xyz/img/kkutu/kkutudotnet.png)",
@@ -302,7 +314,7 @@ $(document).ready(function() {
 	}
 
 	$data.selectedBGM = $data.opts.sb === undefined ? "start" : $data.opts.sb;
-	$data.selectedLobbyBGM = $data.opts.so === undefined ? "start" : $data.opts.so;
+	$data.selectedLobbyBGM = $data.opts.so === undefined ? "2020" : $data.opts.so;
 
 	$data.loadedBGM = $data.selectedBGM;
 	$data.loadedLobbyBGM = $data.selectedLobbyBGM;
@@ -1333,7 +1345,6 @@ $(document).ready(function() {
 					var b = $data.users[$data.id];
 					b.nick = newnick;
 					b.exordial = badWords($("#dress-exordial").val() || "");
-					updateMe();
 					requestProfile($data.id);
 					$("#account-info").text(newnick);
 					$("#users-item-" + $data.id + " .users-name").text(newnick);
@@ -1343,9 +1354,8 @@ $(document).ready(function() {
 					}, true);
 					akAlert("변경이 완료되었습니다.", true);
 					$stage.dialog.dress.hide();
-					$stage.box.me.hide();
+					updateMe();
 					updateUserList(true);
-					$stage.box.me.show();
 				});
 			}, true);
 		} else {
@@ -1535,6 +1545,8 @@ $(document).ready(function() {
 		ws = new _WebSocket($data.URL);
 		ws.onopen = function(e) {
 			loading();
+			clearInterval(tryReconnect);
+
 			if($data.PUBLIC && mobile) $("#ad").append($("<ins>").addClass("kakao_ad_area")
 				.css({ 'display': "none", 'width': "100%" })
 				.attr({
@@ -1559,6 +1571,10 @@ $(document).ready(function() {
 			stopAllSounds();
 			loading(ct);
 			isWelcome = false;
+			
+			var tryReconnect = _setInterval(function() {
+				if(!isWelcome) connect();
+			}, 500);
 		};
 		ws.onerror = function(e) {
 			console.warn(L['error'], e);
@@ -2695,7 +2711,7 @@ function applyOptions(opt, isFirstLoad) {
 	$data.opts.istheme = $data.opts.tm === undefined ? true : $data.opts.tm;
 
 	$data.selectedBGM = $data.opts.sb === undefined ? "start" : $data.opts.sb;
-	$data.selectedLobbyBGM = $data.opts.so === undefined ? "start" : $data.opts.so;
+	$data.selectedLobbyBGM = $data.opts.so === undefined ? "2020" : $data.opts.so;
 	$data.muteBGM = $data.opts.vb == 0;
 	$data.muteEff = $data.opts.ve == 0;
 
@@ -2945,8 +2961,9 @@ function onMessage(data) {
 						}, true);
 						send('refresh');
 						akAlert("닉네임 설정이 완료되었습니다! 궁금하신 점이 있으시다면 좌측 상단 물음표 아이콘을 클릭하여 도움말을 열어보세요.", true);
-						updateUserList(true);
 						requestProfile($data.id);
+						updateMe(true, newnick);
+						updateUserList(true);
 						o.hide();
 						ov.hide();
 					});
@@ -3282,7 +3299,6 @@ function onMessage(data) {
 					$stage.box.roomList.show();
 					$(".kkutu-menu .for-lobby").show();
 					welcome();
-	
 					var o = $stage.dialog.blocked;
 					o.parent().append(ov = $('<div />', {
 						id: 'block-overlay',
@@ -3303,6 +3319,8 @@ function onMessage(data) {
 						o.find('#blocked-content').html("<h3><b>운영정책 위반으로 서비스 이용이 정지되었습니다.</b></h3><br><b>차단 사유:</b> " + i + "<br><b>차단 기간:</b> " + black.year + "년 " + black.month + "월 " + black.date + "일 " + black.hour + "시 " + black.minute + "분 까지");
 						showDialog($stage.dialog.blocked, false);
 					}
+					playSound('lobby', true);
+
 					break;
 				case 416:
 				case 434:
@@ -3329,6 +3347,10 @@ function onMessage(data) {
 }
 
 function welcome() {
+	if(!isFirst) {
+		notice('자동으로 서버와 다시 연결되었습니다.');
+	}
+	isFirst = false;
 	playBGM('lobby');
 	$("#Intro").animate({
 		'opacity': 1
@@ -3721,45 +3743,53 @@ function checkRoom(modify) {
 	$data._gaming = $data.room.gaming;
 }
 
-function updateMe() {
+function updateMe(isFirst, nick) {
 	var my = $data.users[$data.id];
 	var i, gw = 0;
-	var lv = getLevel(my.data.score);
+	var lv = isFirst === undefined ? getLevel(my.data.score) : 1;
 	var prev = EXP[lv - 2] || 0;
 	var goal = EXP[lv - 1];
-	var rank;
-	if (my.data.rankPoint < 100) {
-		rank = 'UNRANKED';
-	} else if (my.data.rankPoint >= 100 && my.data.rankPoint < 1000) {
-		rank = 'BRONZE';
-	} else if (my.data.rankPoint >= 1000 && my.data.rankPoint < 5000) {
-		rank = 'SILVER';
-	} else if (my.data.rankPoint >= 5000 && my.data.rankPoint < 10000) {
-		rank = 'GOLD';
-	} else if (my.data.rankPoint >= 10000 && my.data.rankPoint < 20000) {
-		rank = 'RUBY';
-	} else if (my.data.rankPoint >= 20000 && my.data.rankPoint < 30000) {
-		rank = 'PLATINUM';
-	} else if (my.data.rankPoint >= 30000 && my.data.rankPoint < 50000) {
-		rank = 'DIAMOND';
-	} else if (my.data.rankPoint >= 50000) {
-		rank = 'MASTER';
+	if(!isFirst) {
+		var rank;
+		if (my.data.rankPoint < 100) {
+			rank = 'UNRANKED';
+		} else if (my.data.rankPoint < 1000) {
+			rank = 'BRONZE';
+		} else if (my.data.rankPoint < 5000) {
+			rank = 'SILVER';
+		} else if (my.data.rankPoint < 10000) {
+			rank = 'GOLD';
+		} else if (my.data.rankPoint < 20000) {
+			rank = 'RUBY';
+		} else if (my.data.rankPoint < 30000) {
+			rank = 'PLATINUM';
+		} else if (my.data.rankPoint < 50000) {
+			rank = 'DIAMOND';
+		} else if (my.data.rankPoint >= 50000) {
+			rank = 'MASTER';
+		}
+		for (i in my.data.record) gw += my.data.record[i][1];
+		$(".my-stat-level").replaceWith(getLevelImage(my.data.score).addClass("my-stat-level"));
+		$(".my-rankPoint").html(my.data.rankPoint + L['LP']);
+		$(".my-gauge .graph-bar").width((my.data.score - prev) / (goal - prev) * 190);
+		$(".my-gauge-text").html(commify(my.data.score) + " / " + commify(goal));
+		$(".my-okg .graph-bar").width(($data._playTime % 600000) / 6000 + "%");
+		$(".my-okg-text").html(prettyTime($data._playTime));
+		$(".my-stat-ping").html(commify(my.money) + L['ping']);
+		renderMoremi(".my-image", my.equip);
+		$(".my-stat-name").html(my.profile.title || my.profile.name);
+	} else {
+		$(".my-stat-level").replaceWith(getLevelImage(1).addClass("my-stat-level"));
+		$(".my-rankPoint").html('0' + L['LP']);
+		$(".my-gauge-text").html("0 / 120");
+		$(".my-okg-text").html("0초");
+		$(".my-stat-ping").html('200' + L['ping']);
+		renderMoremi(".my-image");
+		$(".my-stat-name").html(nick);
 	}
-
-	for (i in my.data.record) gw += my.data.record[i][1];
-	renderMoremi(".my-image", my.equip);
-	// $(".my-image").css('background-image', "url('"+my.profile.image+"')");
-	$(".my-stat-level").replaceWith(getLevelImage(my.data.score).addClass("my-stat-level"));
-	$(".my-stat-name").html(my.profile.title || my.profile.name);
 	$(".my-stat-record").html(L['globalWin'] + " " + gw + L['W']);
-	$(".my-stat-ping").html(commify(my.money) + L['ping']);
 	$(".my-rank").html(L[rank]);
-	$(".my-rankPoint").html(my.data.rankPoint + L['LP']);
-	$(".my-okg .graph-bar").width(($data._playTime % 600000) / 6000 + "%");
-	$(".my-okg-text").html(prettyTime($data._playTime));
 	$(".my-level").html(L['LEVEL'] + " " + lv);
-	$(".my-gauge .graph-bar").width((my.data.score - prev) / (goal - prev) * 190);
-	$(".my-gauge-text").html(commify(my.data.score) + " / " + commify(goal));
 }
 
 function prettyTime(time) {
@@ -4473,8 +4503,8 @@ function updateCommunity() {
 			.append($("<div>").addClass("cfi-name ellipse").html(p ? (p.title || p.name) : L['hidden']))
 			.append($("<div>").addClass("cfi-memo ellipse").text(memo))
 			.append($("<div>").addClass("cfi-menu")
-				.append($("<i>").addClass("kd kd-pencil kd-fw").on('click', requestEditMemo))
-				.append($("<i>").addClass("kd kd-account-remove kd-fw").on('click', requestRemoveFriend))
+				.append($("<i>").addClass("kd kd-edit kd-fw").on('click', requestEditMemo))
+				.append($("<i>").addClass("kd kd-user-times kd-fw").on('click', requestRemoveFriend))
 			)
 		);
 	}

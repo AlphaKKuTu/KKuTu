@@ -198,8 +198,18 @@ $(document).ready(function() {
 	} else {
 		applyOptions([], true);
 	}
-
+	
 	$data.opts.istheme = $data.opts.tm === undefined ? true : $data.opts.tm;
+    $(".dialog-head .dialog-title").on('mousedown', function (e) {
+        var $pd = $(e.currentTarget).parents(".dialog");
+
+        $(".dialog-front").removeClass("dialog-front");
+        $pd.addClass("dialog-front");
+        startDrag($pd, e.pageX, e.pageY);
+    }).on('mouseup', function (e) {
+        stopDrag();
+	});
+	
 	if ($data.opts.istheme) {
 		$("#Background").attr('src', "").addClass("jt-image").css({
 			'background-image': "url(https://cdn.kkutu.xyz/img/kkutu/kkutudotnet.png)",
@@ -208,7 +218,7 @@ $(document).ready(function() {
 	}
 
 	$data.selectedBGM = $data.opts.sb === undefined ? "start" : $data.opts.sb;
-	$data.selectedLobbyBGM = $data.opts.so === undefined ? "start" : $data.opts.so;
+	$data.selectedLobbyBGM = $data.opts.so === undefined ? "2020" : $data.opts.so;
 
 	$data.loadedBGM = $data.selectedBGM;
 	$data.loadedLobbyBGM = $data.selectedLobbyBGM;
@@ -1239,7 +1249,6 @@ $(document).ready(function() {
 					var b = $data.users[$data.id];
 					b.nick = newnick;
 					b.exordial = badWords($("#dress-exordial").val() || "");
-					updateMe();
 					requestProfile($data.id);
 					$("#account-info").text(newnick);
 					$("#users-item-" + $data.id + " .users-name").text(newnick);
@@ -1249,9 +1258,8 @@ $(document).ready(function() {
 					}, true);
 					akAlert("변경이 완료되었습니다.", true);
 					$stage.dialog.dress.hide();
-					$stage.box.me.hide();
+					updateMe();
 					updateUserList(true);
-					$stage.box.me.show();
 				});
 			}, true);
 		} else {
@@ -1441,6 +1449,8 @@ $(document).ready(function() {
 		ws = new _WebSocket($data.URL);
 		ws.onopen = function(e) {
 			loading();
+			clearInterval(tryReconnect);
+
 			if($data.PUBLIC && mobile) $("#ad").append($("<ins>").addClass("kakao_ad_area")
 				.css({ 'display': "none", 'width': "100%" })
 				.attr({
@@ -1465,6 +1475,10 @@ $(document).ready(function() {
 			stopAllSounds();
 			loading(ct);
 			isWelcome = false;
+			
+			var tryReconnect = _setInterval(function() {
+				if(!isWelcome) connect();
+			}, 500);
 		};
 		ws.onerror = function(e) {
 			console.warn(L['error'], e);

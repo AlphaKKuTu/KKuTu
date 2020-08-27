@@ -193,20 +193,22 @@ Server.post("/dressnick", function (req, res) {
 				return;
 			}
 			MainDB.users.findOne([ 'nick', nick ]).on(function($res){
-				text = text.slice(0, 100).trim();
-				nick = nick.trim();
-				
-				MainDB.users.update(['_id', req.session.profile.id]).set({
-					'exordial': text,
-					'nick': nick
-				}).on(function ($res) {
-					MainDB.session.findOne(['_id', req.session.id]).limit(['profile', true]).on(function ($ses) {
-						$ses.profile.title = nick;
-						MainDB.session.update(['_id', req.session.id]).set(['profile', $ses.profile]).on(function ($body) {
-							res.send({text: text});
+				if(!$res) {
+					text = text.slice(0, 100).trim();
+					nick = nick.trim();
+					
+					MainDB.users.update(['_id', req.session.profile.id]).set({
+						'exordial': text,
+						'nick': nick
+					}).on(function ($res) {
+						MainDB.session.findOne(['_id', req.session.id]).limit(['profile', true]).on(function ($ses) {
+							$ses.profile.title = nick;
+							MainDB.session.update(['_id', req.session.id]).set(['profile', $ses.profile]).on(function ($body) {
+								res.send({text: text});
+							});
 						});
 					});
-				});
+				} else res.send({ error: 460 });
 			});
 		});
 	} else res.send({error: 400});

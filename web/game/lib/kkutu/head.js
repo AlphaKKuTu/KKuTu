@@ -94,3 +94,5 @@ var _setTimeout = setTimeout;
 
 var isWelcome = false;
 var isFirst = true;
+var cBGM = false;
+var reConnect = true;

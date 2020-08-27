@@ -601,6 +601,11 @@ function onMessage(data) {
 					loading();
 					akAlert("[#" + data.code + "] " + L['error_' + data.code] + i, true);
 					break;
+				case 410:
+					akAlert("[#" + data.code + "] " + L['error_' + data.code] + i, true);
+					reConnect = false;
+					
+					break;
 				case 416:
 					akConfirm(L['error_' + data.code], function(resp) {
 						if (!resp) return;
@@ -636,11 +641,13 @@ function onMessage(data) {
 					akAlert("[#" + data.code + "] " + L['error_' + data.code] + i, true);
 					break;
 				case 444:
+					cBGM = true;
+					
 					i = data.message;
 					t = data.time;
-	
+
 					var blackEnds = new Date(parseInt(t));
-	
+					
 					loading();
 					$(".kkutu-menu button").hide();
 					$stage.box.me.show();
@@ -672,6 +679,7 @@ function onMessage(data) {
 					}
 					playSound('lobby', true);
 
+					reConnect = false;
 					break;
 				case 416:
 				case 434:

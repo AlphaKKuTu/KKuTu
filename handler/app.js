@@ -22,7 +22,6 @@ const server = require('http').createServer();
 const url = require('url');
 const proxy = require('http2-proxy');
 
-var geoip = require('geoip-country');
 const defaultWSHandler = (err, req, socket, head) => {
     if (err) {
       JLog.info('Client disconnected: ', err);
@@ -32,16 +31,12 @@ const defaultWSHandler = (err, req, socket, head) => {
 
 const GLOBAL = require("../sub/global.json");
 
-var filter = new Array();
-var ban = new Array();
-
 const ports = [
     // Your port here
 ];
 
 const { RateLimiterMemory } = require('rate-limiter-flexible');
-const rateLimiterKR = new RateLimiterMemory({ points: 6, duration: 3, blockDuration: 5 });
-const rateLimiterGlobal = new RateLimiterMemory({ points: 2, duration: 3, blockDuration: 5 });
+const rateLimiter = new RateLimiterMemory({ points: 15, duration: 3, blockDuration: 5 });
 
 JLog.info("<< KKuTuDotNet Handler >>");
 
@@ -53,19 +48,8 @@ server.on('upgrade', (req, socket, head) => {
     socket.destroy();
   } else if(remoteIp == 'client') {
     passWS(req, socket, head, pathname, remoteIp);
-  } else if(ban.includes(remoteIp)) {
-    JLog.warn(`[WS] IP ${remoteIp} is temp-banned. Blocking response.`);
-    socket.destroy();
-  } else if(!geoip.lookup(remoteIp) || geoip.lookup(remoteIp) != 'KR') {
-    rateLimiterGlobal.consume(remoteIp, 1)
-      .then((rateLimiterRes) => {
-        passWS(req, socket, head, pathname, remoteIp);
-      })
-      .catch((rateLimiterRes) => {
-        blocked(remoteIp, socket);
-      });
   } else {
-    rateLimiterKR.consume(remoteIp, 1)
+    rateLimiter.consume(remoteIp, 1)
       .then((rateLimiterRes) => {
         passWS(req, socket, head, pathname, remoteIp);
       })
@@ -76,16 +60,8 @@ server.on('upgrade', (req, socket, head) => {
 });
 
 function blocked(remoteIp, socket) {
-  var count = filter.filter(x => x == remoteIp).length;
-  if(count > 9) {
-    ban.push(remoteIp);
-    JLog.success(`[WS] IP ${remoteIp} is blocked temporarily`);
-    socket.destroy();
-  } else {
-    filter.push(remoteIp);
-    JLog.warn(`[WS] DoS from IP ${remoteIp}`);
-    socket.destroy();
-  }
+  JLog.warn(`[WS] DoS from IP ${remoteIp}`);
+  socket.destroy();
 }
 
 function passWS(req, socket, head, pathname, remoteIp) {
@@ -109,10 +85,3 @@ function passWS(req, socket, head, pathname, remoteIp) {
 
 JLog.success(`Handler server is ready.`);
 server.listen(GLOBAL.HANDLER_PORT);
-
-const cron = require('node-cron');
-cron.schedule('*/30 * * * *', () => {
-  filter = [];
-  ban = [];
-  JLog.info(`[WS] Cleared all Filter/Ban`);
-});

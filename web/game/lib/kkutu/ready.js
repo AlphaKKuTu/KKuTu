@@ -1472,13 +1472,13 @@ $(document).ready(function() {
 			var ct = "[#" + e.code + "] " + L['closed'];
 
 			if (rws) rws.close();
-			stopAllSounds();
+			if (!cBGM) stopAllSounds();
 			loading(ct);
 			isWelcome = false;
 			
-			var tryReconnect = _setInterval(function() {
+			if(reConnect) var tryReconnect = _setInterval(function() {
 				if(!isWelcome) connect();
-			}, 500);
+			}, 1500);
 		};
 		ws.onerror = function(e) {
 			console.warn(L['error'], e);

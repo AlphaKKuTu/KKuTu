@@ -198,18 +198,18 @@ $(document).ready(function() {
 	} else {
 		applyOptions([], true);
 	}
-	
-	$data.opts.istheme = $data.opts.tm === undefined ? true : $data.opts.tm;
-    $(".dialog-head .dialog-title").on('mousedown', function (e) {
-        var $pd = $(e.currentTarget).parents(".dialog");
 
-        $(".dialog-front").removeClass("dialog-front");
-        $pd.addClass("dialog-front");
-        startDrag($pd, e.pageX, e.pageY);
-    }).on('mouseup', function (e) {
-        stopDrag();
+	$data.opts.istheme = $data.opts.tm === undefined ? true : $data.opts.tm;
+	$(".dialog-head .dialog-title").on('mousedown', function(e) {
+		var $pd = $(e.currentTarget).parents(".dialog");
+
+		$(".dialog-front").removeClass("dialog-front");
+		$pd.addClass("dialog-front");
+		startDrag($pd, e.pageX, e.pageY);
+	}).on('mouseup', function(e) {
+		stopDrag();
 	});
-	
+
 	if ($data.opts.istheme) {
 		$("#Background").attr('src', "").addClass("jt-image").css({
 			'background-image': "url(https://cdn.kkutu.xyz/img/kkutu/kkutudotnet.png)",
@@ -459,17 +459,23 @@ $(document).ready(function() {
 		o.find('#item-skip').off('click').click(function() {
 			o.hide();
 			ov.hide();
-			send(type, { item: "skip" });
+			send(type, {
+				item: "skip"
+			});
 		});
 		o.find('#item-reverse').off('click').click(function() {
 			o.hide();
 			ov.hide();
-			send(type, { item: "reverse" });
+			send(type, {
+				item: "reverse"
+			});
 		});
 		o.find('#item-random').off('click').click(function() {
 			o.hide();
 			ov.hide();
-			send(type, { item: "random" });
+			send(type, {
+				item: "random"
+			});
 		});
 		ov.show();
 		showDialog(o, true);
@@ -664,7 +670,8 @@ $(document).ready(function() {
 		if ($stage.dialog[i].children(".dialog-head").hasClass("no-close")) continue;
 
 		$stage.dialog[i].children(".dialog-head").append($("<div>").addClass("closeBtn").on('click', function(e) {
-			$(e.currentTarget).parent().parent().hide(); $("#msg-overlay").hide();
+			$(e.currentTarget).parent().parent().hide();
+			$("#msg-overlay").hide();
 		}).hotkey(false, 27));
 	}
 	$stage.menu.refresh.on('click', function(e) {
@@ -677,10 +684,6 @@ $(document).ready(function() {
 	$stage.menu.help.on('click', function(e) {
 		$("#help-board").attr('src', "/help");
 		showDialog($stage.dialog.help);
-	});
-	$stage.menu.user.on('click', function(e) {
-		$("#user-board").attr('src', "/user");
-		showDialog($stage.dialog.user);
 	});
 	$stage.menu.bulletin.on('click', function(e) {
 		$("#bulletin-board").attr('src', "/bulletin");
@@ -886,9 +889,9 @@ $(document).ready(function() {
 		if (RULE[MODE[$data.room.mode]].ai) {
 			$("#PracticeDiag .dialog-title").html(L['practice']);
 			$("#ai-team").val(0).prop('disabled', true);
-			if($data.room.opts.item) {
+			if ($data.room.opts.item) {
 				akConfirm("아이템전 특수 규칙이 활성화되어 사기 끄투 봇으로만 연습이 가능합니다. 계속 진행하시겠습니까?", function(resp) {
-					if(resp) send('practice', {
+					if (resp) send('practice', {
 						level: 4
 					});
 				}, true);
@@ -900,12 +903,12 @@ $(document).ready(function() {
 		}
 	});
 	$stage.menu.ready.on('click', function(e) {
-		if($data.room.opts.item && !$stage.menu.ready.hasClass("toggled")) {
+		if ($data.room.opts.item && !$stage.menu.ready.hasClass("toggled")) {
 			akPrompt.item('ready');
 		} else send('ready');
 	});
 	$stage.menu.start.on('click', function(e) { // $data._spectate || $data.practicing
-		if(!$data._spectate && $data.room.opts.item) akPrompt.item('start');
+		if (!$data._spectate && $data.room.opts.item) akPrompt.item('start');
 		else send('start');
 	});
 	$stage.menu.exit.on('click', function(e) {
@@ -952,7 +955,7 @@ $(document).ready(function() {
 		});
 	});
 	$stage.menu.userList.on('click', function(e) {
-		if($stage.box.userList.is(":visible")) {
+		if ($stage.box.userList.is(":visible")) {
 			$stage.menu.userList.removeClass("toggled");
 			$stage.box.userList.hide();
 		} else {
@@ -1438,6 +1441,25 @@ $(document).ready(function() {
 		replayReady();
 	});
 
+	$("#volume-bgm").on('input', () => {
+		setVolume(true)
+	});
+	$("#volume-effect").on('input', () => {
+		setVolume(false)
+	});
+
+	function setVolume(loop) {
+		if (loop) {
+			if ($data.vb) {
+				$data.vb.gain.value = Number($("#volume-bgm").val()) - 1;
+			}
+		} else {
+			if ($data.ve) {
+				$data.ve.gain.value = Number($("#volume-effect").val()) - 1;
+			}
+		}
+	}
+
 	// 스팸
 	addInterval(function() {
 		if (spamCount > 0) spamCount = 0;
@@ -1445,14 +1467,21 @@ $(document).ready(function() {
 	}, 1000);
 
 	// 웹소켓 연결
-	function connect() {
+	function connect(rec) {
+		if (ws) {
+			ws.close();
+			ws = null;
+		}
+
 		ws = new _WebSocket($data.URL);
 		ws.onopen = function(e) {
 			loading();
-			clearInterval(tryReconnect);
 
-			if($data.PUBLIC && mobile) $("#ad").append($("<ins>").addClass("kakao_ad_area")
-				.css({ 'display': "none", 'width': "100%" })
+			if ($data.PUBLIC && mobile) $("#ad").append($("<ins>").addClass("kakao_ad_area")
+				.css({
+					'display': "none",
+					'width': "100%"
+				})
 				.attr({
 					'data-ad-unit': "DAN-qdw1v8ei55iv",
 					'data-ad-width': "320",
@@ -1475,19 +1504,17 @@ $(document).ready(function() {
 			if (!cBGM) stopAllSounds();
 			loading(ct);
 			isWelcome = false;
-			
-			if(reConnect) var tryReconnect = _setInterval(function() {
-				if(!isWelcome) connect();
-			}, 1500);
+
+			if (reConnect) connect(true);
 		};
 		ws.onerror = function(e) {
 			console.warn(L['error'], e);
 		};
 	}
-	_setInterval(function(){
-		if(isWelcome) {
+	_setInterval(function() {
+		if (isWelcome) {
 			send('refresh');
-			if($data.room) send('refresh', undefined, true);
+			if ($data.room) send('refresh', undefined, true);
 		}
 	}, 18000);
 });

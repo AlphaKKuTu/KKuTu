@@ -29,11 +29,11 @@ block Middle
 	div#container-black(style='float: right; background-color: #ccc; display: inline-block; width: 795px; height: 286px;')
 		div#container-social(style='float: right; background-color: #004c5c; width: 189px; height: 286px;')
 			div#container-social-ribbon(style='float: left; margin-left: 10px; width: 4px; height: 100%; background-color: #fff;')
-			a#social(style='margin-top:2.5px;' href='https://blog.kkutu.xyz' target='_blank') <i class="kd kd-blog kd-fw"></i> 네이버 블로그
-			a#social(href='https://cafe.naver.com/kkutuxyz' target='_blank') <i class="kd kd-coffee kd-fw"></i> 네이버 카페
+			a#social(style='margin-top:2.5px;' href='https://blog.kkutu.xyz' target='_blank') <i class="kd kd-blog kd-fw"></i> 공식 블로그
 			a#social(href='https://discord.gg/rnCSBWj' target='_blank') <i class="kdb kd-discord kd-fw"></i> 디스코드
 			a#social(href='https://fb.me/KKuTuDotNet' target='_blank') <i class="kdb kd-facebook kd-fw"></i> 페이스북
 			a#social(href='https://pf.kakao.com/_gxcsxeT' target='_blank') <i class="kd kd-comments kd-fw"></i> 카카오톡
+			a#social(href='https://kkutu.tawk.help' target='_blank') <i class="kd kd-question-circle kd-fw"></i> 고객센터
 			a#social(href='https://forum.kkutu.xyz' target='_blank') <i class="kd kd-comment kd-fw"></i> 공식 포럼
 	+separator(5)
 	div(style='float: left;')
@@ -82,3 +82,13 @@ block Bottom
 		기본적인 게임 방식은 차례를 이어 나가며 점수를 획득하고, 가장 많이 획득한 순서대로 순위가 매겨지는 간단한 방식입니다.
 		현재는 원작자가 개발을 중단하여 프리 서버 게임으로 변경된 상태입니다. 그리고 그 서버 중 대표적인 서버가 바로 끄투닷넷입니다.
 	link(rel='stylesheet', href='https://cdn.kkutu.xyz/css/notice.css?v='+L('version'), async)
+	script(type='text/javascript').
+		var Tawk_API=Tawk_API||{}, Tawk_LoadStart=new Date();
+		(function(){
+			var s1=document.createElement("script"),s0=document.getElementsByTagName("script")[0];
+			s1.async=true;
+			s1.src='https://embed.tawk.to/5f62d8194704467e89efad88/default';
+			s1.charset='UTF-8';
+			s1.setAttribute('crossorigin','*');
+			s0.parentNode.insertBefore(s1,s0);
+		})();

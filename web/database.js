@@ -84,6 +84,7 @@ Pub.ready = function(isPub){
 			
 			DB.session = new mainAgent.Table("session");
 			DB.users = new mainAgent.Table("users");
+			DB.blocked_ip = new mainAgent.Table("blocked_ip");
 			
 			if(exports.ready) exports.ready(Redis, Pg);
 			else JLog.warn("DB.onReady was not defined yet.");

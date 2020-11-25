@@ -16,7 +16,6 @@
  * You should have received a copy of the GNU General Public License
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
-
 module.exports = function(gameServer, REDIS_SESSION, GLOBAL) {
 	var WS = require("ws");
 	var Express = require("express");
@@ -52,7 +51,9 @@ module.exports = function(gameServer, REDIS_SESSION, GLOBAL) {
 	gameServer.set('views', __dirname + "/game/views");
 	gameServer.set('view engine', "pug");
 	gameServer.use(Express.static(__dirname + "/game/public"));
-	gameServer.use(Express.urlencoded({ extended: true }));
+	gameServer.use(Express.urlencoded({
+		extended: true
+	}));
 	gameServer.use(REDIS_SESSION);
 	gameServer.use(passport.initialize());
 	gameServer.use(passport.session());
@@ -67,16 +68,17 @@ module.exports = function(gameServer, REDIS_SESSION, GLOBAL) {
 		maxWeight: 12,
 		checkInterval: 10000,
 		rules: [{
-			regexp: "^/(cf|dict|kpanel|ranking)",
-			maxWeight: 30,
-			errorData: '<meta charset="utf-8"><h2>[#429] 요청이 너무 많습니다. 잠시 후 다시 시도해주세요.</h2>'
-		},
+				regexp: "^/(cf|dict|kpanel|ranking)",
+				maxWeight: 30,
+				errorData: '<meta charset="utf-8"><h2>[#429] 요청이 너무 많습니다. 잠시 후 다시 시도해주세요.</h2>'
+			},
 			{
 				regexp: ".*",
 				errorData: '<meta charset="utf-8"><h2>[#429] 요청이 너무 많습니다. 잠시 후 다시 시도해주세요.</h2>'
-			}]
+			}
+		]
 	});
-	DDDoS.rules[0].logFunction = DDDoS.rules[1].logFunction = function (ip, path) {
+	DDDoS.rules[0].logFunction = DDDoS.rules[1].logFunction = function(ip, path) {
 		JLog.warn(`DoS from IP ${ip} on ${path}`);
 	};
 	gameServer.use(DDDoS.express('clientIp', 'path'));
@@ -221,7 +223,7 @@ module.exports = function(gameServer, REDIS_SESSION, GLOBAL) {
 				'EN_THEME': Const.EN_THEME,
 				'IJP_EXCEPT': Const.IJP_EXCEPT,
 				'ogImage': "https://cdn.kkutu.xyz/img/kkutu/logo.png",
-				'ogURL': "https://kkutu.xyz/",
+				'ogURL': "https://kkutu.xyz",
 				'ogTitle': "끄투닷넷",
 				'ogDescription': "내 작은 글자 놀이터, 끄투닷넷! / 끄투 온라인, 끝말잇기, 쿵쿵따, 초성퀴즈, 자음퀴즈, 타자대결, 단어대결, 십자말풀이, 그림퀴즈"
 			});
@@ -251,10 +253,10 @@ module.exports = function(gameServer, REDIS_SESSION, GLOBAL) {
 	gameServer.get("/browserunsupport", function(req, res) {
 		page(req, res, "browserunsupport");
 	});
-	
+
 	gameServer.get("*", function(req, res) {
 		page(req, res, "404");
 	});
-	
+
 	gameServer.use("/", expressStaticGzip('./cache'));
 }

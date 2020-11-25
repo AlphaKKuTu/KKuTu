@@ -93,7 +93,12 @@ var _setInterval = setInterval;
 var _setTimeout = setTimeout;
 
 var isWelcome = false;
+var cBGM = false;
+var tryReconnect = false;
+
 var isFirst = true;
+var reConnect = true;
+
 /**
  * Rule the words! KKuTu Online
  * Copyright (C) 2017 JJoriping(op@jjo.kr)
@@ -1534,6 +1539,21 @@ $(document).ready(function() {
 		replayReady();
 	});
 
+	$("#volume-bgm").on('input', () => { setVolume(true) });
+	$("#volume-effect").on('input', () => { setVolume(false) });
+
+	function setVolume(loop) {
+		if(loop) {
+			if($data.vb) {
+				$data.vb.gain.value = Number($("#volume-bgm").val()) - 1;
+			}
+		} else {
+			if($data.ve) {
+				$data.ve.gain.value = Number($("#volume-effect").val()) - 1;
+			}
+		}
+	}
+
 	// 스팸
 	addInterval(function() {
 		if (spamCount > 0) spamCount = 0;
@@ -1541,12 +1561,16 @@ $(document).ready(function() {
 	}, 1000);
 
 	// 웹소켓 연결
-	function connect() {
+	function connect(rec) {
+		if(ws) {
+			ws.close();
+			ws = null;
+		}
+
 		ws = new _WebSocket($data.URL);
 		ws.onopen = function(e) {
 			loading();
-			clearInterval(tryReconnect);
-
+			
 			if($data.PUBLIC && mobile) $("#ad").append($("<ins>").addClass("kakao_ad_area")
 				.css({ 'display': "none", 'width': "100%" })
 				.attr({
@@ -1568,13 +1592,11 @@ $(document).ready(function() {
 			var ct = "[#" + e.code + "] " + L['closed'];
 
 			if (rws) rws.close();
-			stopAllSounds();
+			if (!cBGM) stopAllSounds();
 			loading(ct);
 			isWelcome = false;
 			
-			var tryReconnect = _setInterval(function() {
-				if(!isWelcome) connect();
-			}, 500);
+			if(reConnect) connect(true);
 		};
 		ws.onerror = function(e) {
 			console.warn(L['error'], e);
@@ -2702,7 +2724,7 @@ function showDialog($d, noToggle) {
 	}
 }
 
-function applyOptions(opt, isFirstLoad) {
+function applyOptions(opt) {
 	$data.opts = opt;
 
 	$data.opts.isbad = $data.opts.bd === undefined ? true : $data.opts.bd;
@@ -2712,8 +2734,6 @@ function applyOptions(opt, isFirstLoad) {
 
 	$data.selectedBGM = $data.opts.sb === undefined ? "start" : $data.opts.sb;
 	$data.selectedLobbyBGM = $data.opts.so === undefined ? "2020" : $data.opts.so;
-	$data.muteBGM = $data.opts.vb == 0;
-	$data.muteEff = $data.opts.ve == 0;
 
 	$("#volume-bgm").val($data.opts.vb);
 	$("#volume-effect").val($data.opts.ve);
@@ -2731,16 +2751,16 @@ function applyOptions(opt, isFirstLoad) {
 	$("#select-lobby-bgm").val($data.selectedLobbyBGM);
 
 	if ($data.bgm) {
-		if (!isFirstLoad && (($data.loadedBGM != $data.selectedBGM) || ($data.loadedLobbyBGM != $data.selectedLobbyBGM))) {
+		if (($data.loadedBGM != $data.selectedBGM) || ($data.loadedLobbyBGM != $data.selectedLobbyBGM)) {
+			$_sound["lobby"].stop();
 			loadSounds($data._soundList(), false, true);
-			akAlert("배경 음악이 변경되었습니다. 배경 음악/효과음 음량을 조절하시거나 게임을 시작하시면 바로 적용됩니다.", true);
-
+			
 			$data.loadedBGM = $data.selectedBGM;
 			$data.loadedLobbyBGM = $data.selectedLobbyBGM;
-		} else if ($data.muteBGM) {
-			$data.bgm.stop();
-		} else {
-			$data.bgm = playBGM($data.bgm.key, true);
+
+			if (getOnly() == "for-lobby") {
+				playBGM($data.bgm.key, true);
+			}
 		}
 	}
 }
@@ -3250,6 +3270,14 @@ function onMessage(data) {
 					loading();
 					akAlert("[#" + data.code + "] " + L['error_' + data.code] + i, true);
 					break;
+				case 402:
+				case 408:
+				case 410:
+				case 449:
+					akAlert("[#" + data.code + "] " + L['error_' + data.code] + i, true);
+					reConnect = false;
+					
+					break;
 				case 416:
 					akConfirm(L['error_' + data.code], function(resp) {
 						if (!resp) return;
@@ -3285,11 +3313,13 @@ function onMessage(data) {
 					akAlert("[#" + data.code + "] " + L['error_' + data.code] + i, true);
 					break;
 				case 444:
+					cBGM = true;
+					
 					i = data.message;
 					t = data.time;
-	
+
 					var blackEnds = new Date(parseInt(t));
-	
+					
 					loading();
 					$(".kkutu-menu button").hide();
 					$stage.box.me.show();
@@ -3321,6 +3351,7 @@ function onMessage(data) {
 					}
 					playSound('lobby', true);
 
+					reConnect = false;
 					break;
 				case 416:
 				case 434:
@@ -5825,41 +5856,46 @@ function stopBGM() {
 
 function playSound(key, loop) {
 	var src, sound;
-	var mute = (loop && $data.muteBGM) || (!loop && $data.muteEff);
-	var volume = loop ? ($data.opts.vb ? $data.opts.vb : 1) : ($data.opts.ve ? $data.opts.ve : 1);
+	// var mute = (loop && $data.muteBGM) || (!loop && $data.muteEff);
 
 	sound = $sound[key] || $sound.missing;
 	if (window.hasOwnProperty("AudioBuffer") && sound instanceof AudioBuffer) {
 		src = audioContext.createBufferSource();
 		src.startedAt = audioContext.currentTime;
 		src.loop = loop;
-		if (mute) {
-			src.buffer = audioContext.createBuffer(2, sound.length, audioContext.sampleRate);
-		} else {
-			src.buffer = sound;
-			var gainNode = typeof(audioContext.createGain) == "function" ? audioContext.createGain() : null;
-			if (gainNode) {
-				gainNode.gain.value = Number(volume) - 1;
-				gainNode.connect(audioContext.destination);
-				src.connect(gainNode);
-			}
+		src.buffer = sound;
+		
+		var gainNode = typeof(audioContext.createGain) == "function" ? audioContext.createGain() : null;
+		if (gainNode) {
+			gainNode.connect(audioContext.destination);
+			src.connect(gainNode);
 		}
 		src.connect(audioContext.destination);
 	} else {
 		if (sound.readyState) sound.audio.currentTime = 0;
 		sound.audio.loop = loop || false;
-		sound.audio.volume = volume;
+		sound.audio.volume = 1;
 		src = sound;
 	}
 	if ($_sound[key]) $_sound[key].stop();
 	$_sound[key] = src;
 	src.key = key;
 	src.start();
+	
 	/*if(sound.readyState) sound.currentTime = 0;
 	sound.loop = loop || false;
 	sound.volume = ((loop && $data.muteBGM) || (!loop && $data.muteEff)) ? 0 : 1;
 	sound.play();*/
 
+	if (gainNode) {
+		if(loop) {
+			$data.vb = gainNode;
+			$data.vb.gain.value = Number($("#volume-bgm").val()) - 1;
+		} else {
+			$data.ve = gainNode;
+			$data.ve.gain.value = Number($("#volume-effect").val()) - 1;
+		}
+	}
 	return src;
 }
 

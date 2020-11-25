@@ -1,6 +1,6 @@
 {
 	"GLOBAL": {
-		"version": "20.8.8.1",
+		"version": "20.11.1",
 		
 		"SETTING":	"설정",
 		"OG_IMAGE": "https://cdn.jsdelivr.net/npm/kkutudotnet@latest/img/kkutu/intro.png",
@@ -196,6 +196,7 @@
 		"error_443": "관리자에 의해 해당 계정으로의 채팅 이용이 제한되었습니다.",
 		"error_444": "관리자에 의해 해당 계정으로의 게임 이용이 제한되었습니다.\n제한 사유: ",
 		"error_445": "본인 확인에 성공했습니다. 끄투를 이용해 주셔서 감사합니다.",
+		"error_449": "로그인 후 게임 이용이 가능합니다.\n우측 상단의 로그인 단추를 눌러 로그인하세요.",
 		"error_450": "해당 사용자가 끄투에 접속하지 않았거나 이 채널에 접속해 있지 않습니다.",
 		"error_451": "친구 기능은 로그인 상태여야 이용할 수 있습니다.\n우측 상단의 로그인 단추를 눌러 로그인 후 이용하세요.",
 		"error_452": "더 친구를 추가할 수 없습니다.",
@@ -482,6 +483,12 @@
 		"expl_smile_eye": "항상 웃는 모레미입니다.",
 		"item_haengbok_eye": "행복한 눈",
 		"expl_haengbok_eye": "항상 행복한 모레미입니다.",
+		"item_school_uniform": "교복",
+		"expl_school_uniform": "꿈을 위해 공부하고 있는 중학생 모레미의 교복입니다.",
+		"item_fall_coat": "따뜻한 코트",
+		"expl_fall_coat": "추운 겨울, 모레미가 입는 코트입니다.",
+		"item_hood_zip": "후드 집 업",
+		"expl_hood_zip": "멋진 모레미들만 입는 후드입니다.",
 
 		"teamSolo": "개인",
 		"guest": "회원",

@@ -40,7 +40,9 @@ var T_USER = {};
 
 var SID;
 var WDIC = {};
+
 var isLobby = true;
+var isGuest = true;
 
 const DEVELOP = exports.DEVELOP = global.test || false;
 const GUEST_PERMISSION = exports.GUEST_PERMISSION = {
@@ -68,6 +70,7 @@ const PORT = process.env['KKUTU_PORT'];
 
 const webHook = require('discord-webhook-node');
 const hook = new webHook.Webhook(GLOBAL['SANCTION_WEBHOOK']);
+const ipHook = new webHook.Webhook(GLOBAL['SANCTION_IP_WEBHOOK']);
 const reason = [
 	"[#900] 게임 내 명칭 정책 위반",
 	"[#901] 다른 회원에게 불쾌감과 모욕감을 주는 행위",
@@ -84,6 +87,8 @@ const reason = [
 	"[#912] 기타 운영정책 위반 행위"
 ];
 
+// geoIp
+const geoIp = require('geoip-country');
 
 process.on('uncaughtException', function(err){
 	var text = `:${PORT} [${new Date().toLocaleString()}] ERROR: ${err.toString()}\n${err.stack}\n`;
@@ -373,6 +378,8 @@ function processAdmin(id, value){
 
 					hook.info(`**${oldNick}** (${obj[0]})`, `제재 사유: ${blackReason}`, `**처벌: **${blackNum}차`);
 					MainDB.users.update([ '_id', obj[0] ]).set([ 'warnings', JSON.stringify(warn) ]).on();
+
+					DIC[id].send('notice', { value: `사용자 ${oldNick} (${code}, ${blackNum}차)의 이용제한이 처리되었습니다.` });
 					JLog.info(`[SANCTION] #${obj[0]} banned`);
 
 					if(temp = DIC[obj[0]]){
@@ -383,6 +390,21 @@ function processAdmin(id, value){
 			} catch (e) {
 				JLog.warn("[SANCTION] Error: " + e);
 			}
+			return null;
+		case "ipban":			
+			if(!value) return null;
+			if(!/^(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$/.test(value)) {
+				if(!/^(([0-9a-fA-F]{1,4}:){7,7}[0-9a-fA-F]{1,4}|([0-9a-fA-F]{1,4}:){1,7}:|([0-9a-fA-F]{1,4}:){1,6}:[0-9a-fA-F]{1,4}|([0-9a-fA-F]{1,4}:){1,5}(:[0-9a-fA-F]{1,4}){1,2}|([0-9a-fA-F]{1,4}:){1,4}(:[0-9a-fA-F]{1,4}){1,3}|([0-9a-fA-F]{1,4}:){1,3}(:[0-9a-fA-F]{1,4}){1,4}|([0-9a-fA-F]{1,4}:){1,2}(:[0-9a-fA-F]{1,4}){1,5}|[0-9a-fA-F]{1,4}:((:[0-9a-fA-F]{1,4}){1,6})|:((:[0-9a-fA-F]{1,4}){1,7}|:)|fe80:(:[0-9a-fA-F]{0,4}){0,4}%[0-9a-zA-Z]{1,}|::(ffff(:0{1,4}){0,1}:){0,1}((25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])\.){3,3}(25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])|([0-9a-fA-F]{1,4}:){1,4}:((25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])\.){3,3}(25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9]))/.test(value)) {
+					DIC[id].send('notice', { value: `올바른 IPv4 또는 IPv6 주소가 아닙니다.` });
+					return null;
+				};
+			};
+
+			MainDB.blocked_ip.insert([ '_id', value ]).on();
+			ipHook.info(`**IP ${value}(이)가 차단되었습니다.**`);
+
+			DIC[id].send('notice', { value: `IP 주소 ${value}(이)가 차단되었습니다.` });
+			JLog.info(`[BAN-IP] IP ${value} banned`);
 			return null;
 		/*
 		case "ban":
@@ -422,6 +444,18 @@ function processAdmin(id, value){
 			MainDB.users.update([ '_id', value ]).set([ 'black', null ]).on();
 			MainDB.users.update([ '_id', value ]).set([ 'time', Number(null) ]).on();
 			JLog.info(`[UNBAN] #${value} unbanned`);
+			return null;
+		case "ipunban":
+			if(!value) return null;
+			try {
+				MainDB.blocked_ip.remove([ '_id', value ]).on();
+				ipHook.warning(`**IP ${value}의 차단이 해제되었습니다.**`);
+	
+				DIC[id].send('notice', { value: `IP 주소 ${value}(이)가 차단 해제되었습니다.` });
+				JLog.info(`[UNBAN-IP] IP ${value} unbanned`);
+			} catch (e) {
+				JLog.warn("[SANCTION] Error: " + e);
+			}
 			return null;
 		case "broadcast":
 			KKuTu.publish('yell', { value: value });
@@ -487,6 +521,11 @@ function processAdmin(id, value){
 			if (!isLobby) isLobby = true; 
 			else if (isLobby) isLobby = false;
 			JLog.log(`[DEBUG] isLobby changed to ${isLobby}`);
+			return null;
+		case "guest":
+			if (!isGuest) isGuest = true; 
+			else if (isGuest) isGuest = false;
+			JLog.log(`[DEBUG] isGuest changed to ${isGuest}`);
 			return null;
 	}
 	return value;
@@ -688,7 +727,7 @@ exports.init = function(_SID, CHAN){
 				
 				if(DIC[$c.id]){
 					DIC[$c.id].sendError(408);
-					setTimeout(() => $c.socket.close(), 50);
+					setTimeout(() => $c.socket.close(), 10);
 				}
 				if(DEVELOP && !Const.TESTER.includes($c.id)){
 					$c.sendError(500);
@@ -696,13 +735,24 @@ exports.init = function(_SID, CHAN){
 					return;
 				}
 				if($c.guest){
+					if(!isGuest){
+						$c.sendError(449);
+						setTimeout(() => $c.socket.close(), 10);
+						return;
+					}
 					if(SID != "0"&&SID != "1"){
 						$c.sendError(402);
-						setTimeout(() => $c.socket.close(), 50);
+						setTimeout(() => $c.socket.close(), 10);
 						return;
 					}
 					if(KKuTu.NIGHT){
 						$c.sendError(440);
+						$c.socket.close();
+						return;
+					}
+					var clientIp = geoIp.lookup($c.remoteAddress)['country'];
+					if(clientIp) if(clientIp != 'KR') {
+						$c.sendError(449);
 						$c.socket.close();
 						return;
 					}
@@ -745,7 +795,7 @@ exports.init = function(_SID, CHAN){
 						if (!ref.time) $c.send('error', { code: ref.result, message: ref.black });
 						else $c.send('error', { code: ref.result, message: ref.black, time: ref.time });
 						$c._error = ref.result;
-						setTimeout(() => $c.socket.close(), 50);
+						setTimeout(() => $c.socket.close(), 10);
 						// JLog.info("Black user #" + $c.id);
 					}
 				});

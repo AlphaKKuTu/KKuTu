@@ -53,7 +53,7 @@ function showDialog($d, noToggle) {
 	}
 }
 
-function applyOptions(opt, isFirstLoad) {
+function applyOptions(opt) {
 	$data.opts = opt;
 
 	$data.opts.isbad = $data.opts.bd === undefined ? true : $data.opts.bd;
@@ -63,8 +63,6 @@ function applyOptions(opt, isFirstLoad) {
 
 	$data.selectedBGM = $data.opts.sb === undefined ? "start" : $data.opts.sb;
 	$data.selectedLobbyBGM = $data.opts.so === undefined ? "2020" : $data.opts.so;
-	$data.muteBGM = $data.opts.vb == 0;
-	$data.muteEff = $data.opts.ve == 0;
 
 	$("#volume-bgm").val($data.opts.vb);
 	$("#volume-effect").val($data.opts.ve);
@@ -82,16 +80,16 @@ function applyOptions(opt, isFirstLoad) {
 	$("#select-lobby-bgm").val($data.selectedLobbyBGM);
 
 	if ($data.bgm) {
-		if (!isFirstLoad && (($data.loadedBGM != $data.selectedBGM) || ($data.loadedLobbyBGM != $data.selectedLobbyBGM))) {
+		if (($data.loadedBGM != $data.selectedBGM) || ($data.loadedLobbyBGM != $data.selectedLobbyBGM)) {
+			$_sound["lobby"].stop();
 			loadSounds($data._soundList(), false, true);
-			akAlert("배경 음악이 변경되었습니다. 배경 음악/효과음 음량을 조절하시거나 게임을 시작하시면 바로 적용됩니다.", true);
 
 			$data.loadedBGM = $data.selectedBGM;
 			$data.loadedLobbyBGM = $data.selectedLobbyBGM;
-		} else if ($data.muteBGM) {
-			$data.bgm.stop();
-		} else {
-			$data.bgm = playBGM($data.bgm.key, true);
+
+			if (getOnly() == "for-lobby") {
+				playBGM($data.bgm.key, true);
+			}
 		}
 	}
 }
@@ -327,9 +325,9 @@ function onMessage(data) {
 				var po = $("#PolicyDiag");
 				$("#service-operation").attr('src', "/policy/operation");
 				$("#service-privacy").attr('src', "/policy/privacy");
-				
+
 				po.find('#policy-ok').off('click').click(function(e) {
-					if(data.guest) akAlert("환영합니다. 현재 손님 계정 접속 상태입니다. 우측 상단 로그인 단추 클릭 후 네이버, 구글 등의 계정으로 로그인 시 더욱 즐거운 플레이가 가능합니다.", true);
+					if (data.guest) akAlert("환영합니다. 현재 손님 계정 접속 상태입니다. 우측 상단 로그인 단추 클릭 후 네이버, 구글 등의 계정으로 로그인 시 더욱 즐거운 플레이가 가능합니다.", true);
 					$.cookie('isChecked', akDate.getDate());
 					po.hide();
 				});
@@ -590,7 +588,7 @@ function onMessage(data) {
 			break;
 		case 'error':
 			i = data.message || "";
-			switch(data.code) {
+			switch (data.code) {
 				case 403:
 				case 2010:
 					loading();
@@ -601,10 +599,13 @@ function onMessage(data) {
 					loading();
 					akAlert("[#" + data.code + "] " + L['error_' + data.code] + i, true);
 					break;
+				case 402:
+				case 408:
 				case 410:
+				case 449:
 					akAlert("[#" + data.code + "] " + L['error_' + data.code] + i, true);
 					reConnect = false;
-					
+
 					break;
 				case 416:
 					akConfirm(L['error_' + data.code], function(resp) {
@@ -634,62 +635,62 @@ function onMessage(data) {
 						$data._preQuick = false;
 						break;
 					}
-				case 431:
-				case 432:
-				case 433:
-					$stage.dialog.room.show();
-					akAlert("[#" + data.code + "] " + L['error_' + data.code] + i, true);
-					break;
-				case 444:
-					cBGM = true;
-					
-					i = data.message;
-					t = data.time;
+					case 431:
+					case 432:
+					case 433:
+						$stage.dialog.room.show();
+						akAlert("[#" + data.code + "] " + L['error_' + data.code] + i, true);
+						break;
+					case 444:
+						cBGM = true;
 
-					var blackEnds = new Date(parseInt(t));
-					
-					loading();
-					$(".kkutu-menu button").hide();
-					$stage.box.me.show();
-					$stage.box.chat.show().width(790).height(190);
-					$stage.chat.height(120);
-					$stage.box.userList.show();
-					$stage.box.roomList.show();
-					$(".kkutu-menu .for-lobby").show();
-					welcome();
-					var o = $stage.dialog.blocked;
-					o.parent().append(ov = $('<div />', {
-						id: 'block-overlay',
-						style: 'position:absolute;top:0;left:0;width:100%;height:100%;opacity:0.8;background:black;'
-					}));
-	
-					if (isNaN(blackEnds)) {
-						o.find('#blocked-content').html("<h3><b>운영정책 위반으로 서비스 이용이 정지되었습니다.</b></h3><br><b>차단 사유:</b> " + i + "<br><b>차단 기간:</b> 영구 차단");
-						showDialog($stage.dialog.blocked, false);
-					} else {
-						var black = {
-							year: blackEnds.getFullYear(),
-							month: blackEnds.getMonth() + 1,
-							date: blackEnds.getDate(),
-							hour: blackEnds.getHours(),
-							minute: blackEnds.getMinutes(),
-						};
-						o.find('#blocked-content').html("<h3><b>운영정책 위반으로 서비스 이용이 정지되었습니다.</b></h3><br><b>차단 사유:</b> " + i + "<br><b>차단 기간:</b> " + black.year + "년 " + black.month + "월 " + black.date + "일 " + black.hour + "시 " + black.minute + "분 까지");
-						showDialog($stage.dialog.blocked, false);
-					}
-					playSound('lobby', true);
+						i = data.message;
+						t = data.time;
 
-					reConnect = false;
-					break;
-				case 416:
-				case 434:
-				case 435:
-				case 436:
-				case 438:
-					akAlert("[#" + data.code + "] " + L['error_' + data.code] + i);
-					break;
-				default:
-					akAlert("[#" + data.code + "] " + L['error_' + data.code] + i, true);
+						var blackEnds = new Date(parseInt(t));
+
+						loading();
+						$(".kkutu-menu button").hide();
+						$stage.box.me.show();
+						$stage.box.chat.show().width(790).height(190);
+						$stage.chat.height(120);
+						$stage.box.userList.show();
+						$stage.box.roomList.show();
+						$(".kkutu-menu .for-lobby").show();
+						welcome();
+						var o = $stage.dialog.blocked;
+						o.parent().append(ov = $('<div />', {
+							id: 'block-overlay',
+							style: 'position:absolute;top:0;left:0;width:100%;height:100%;opacity:0.8;background:black;'
+						}));
+
+						if (isNaN(blackEnds)) {
+							o.find('#blocked-content').html("<h3><b>운영정책 위반으로 서비스 이용이 정지되었습니다.</b></h3><br><b>차단 사유:</b> " + i + "<br><b>차단 기간:</b> 영구 차단");
+							showDialog($stage.dialog.blocked, false);
+						} else {
+							var black = {
+								year: blackEnds.getFullYear(),
+								month: blackEnds.getMonth() + 1,
+								date: blackEnds.getDate(),
+								hour: blackEnds.getHours(),
+								minute: blackEnds.getMinutes(),
+							};
+							o.find('#blocked-content').html("<h3><b>운영정책 위반으로 서비스 이용이 정지되었습니다.</b></h3><br><b>차단 사유:</b> " + i + "<br><b>차단 기간:</b> " + black.year + "년 " + black.month + "월 " + black.date + "일 " + black.hour + "시 " + black.minute + "분 까지");
+							showDialog($stage.dialog.blocked, false);
+						}
+						playSound('lobby', true);
+
+						reConnect = false;
+						break;
+					case 416:
+					case 434:
+					case 435:
+					case 436:
+					case 438:
+						akAlert("[#" + data.code + "] " + L['error_' + data.code] + i);
+						break;
+					default:
+						akAlert("[#" + data.code + "] " + L['error_' + data.code] + i, true);
 			}
 			break;
 		default:
@@ -706,7 +707,7 @@ function onMessage(data) {
 }
 
 function welcome() {
-	if(!isFirst) {
+	if (!isFirst) {
 		notice('자동으로 서버와 다시 연결되었습니다.');
 	}
 	isFirst = false;
@@ -1108,7 +1109,7 @@ function updateMe(isFirst, nick) {
 	var lv = isFirst === undefined ? getLevel(my.data.score) : 1;
 	var prev = EXP[lv - 2] || 0;
 	var goal = EXP[lv - 1];
-	if(!isFirst) {
+	if (!isFirst) {
 		var rank;
 		if (my.data.rankPoint < 100) {
 			rank = 'UNRANKED';
@@ -1232,7 +1233,7 @@ function userListBar(o, forInvite) {
 
 function addonNickname($R, o) {
 	if (o.equip['NIK']) $R.addClass("x-" + o.equip['NIK']);
-	switch(o.equip['BDG']) {
+	switch (o.equip['BDG']) {
 		case 'b1_gm':
 			$R.addClass('x-gm');
 			break;
@@ -1752,7 +1753,7 @@ function drawCharFactory() {
 			gd = iGoods(item);
 			word += item.slice(4);
 			level += LEVEL[item.slice(1, 4)];
-			if(gd.image) $tray.append($("<div>").addClass("jt-image")
+			if (gd.image) $tray.append($("<div>").addClass("jt-image")
 				.css('background-image', "url(" + gd.image + ")")
 				.attr('id', "cf-tray-" + item)
 				.on('click', onTrayClick)
@@ -3030,30 +3031,35 @@ function getCharText(char, subChar, wordLength) {
 	return res;
 }
 
-function getRequiredScore(lv){
-	if(lv <= 240) return Math.round(
-		(!(lv%5)*0.3 + 1) * (!(lv%15)*0.4 + 1) * (!(lv%45)*0.5 + 1) * (
-			120 + Math.floor(lv/5)*60 + Math.floor(lv*lv/225)*120 + Math.floor(lv*lv/2025)*180
+function getRequiredScore(lv) {
+	if (lv <= 240) return Math.round(
+		(!(lv % 5) * 0.3 + 1) * (!(lv % 15) * 0.4 + 1) * (!(lv % 45) * 0.5 + 1) * (
+			120 + Math.floor(lv / 5) * 60 + Math.floor(lv * lv / 225) * 120 + Math.floor(lv * lv / 2025) * 180
 		)
-	); else if(lv <= 360) return Math.round(
-		(!(lv%5)*0.3 + 1) * (!(lv%15)*0.4 + 1) * (!(lv%45)*0.5 + 1) * (
-			120 + Math.floor(lv/5)*100 + Math.floor(lv*lv/225)*200 + Math.floor(lv*lv/2025)*240
+	);
+	else if (lv <= 360) return Math.round(
+		(!(lv % 5) * 0.3 + 1) * (!(lv % 15) * 0.4 + 1) * (!(lv % 45) * 0.5 + 1) * (
+			120 + Math.floor(lv / 5) * 100 + Math.floor(lv * lv / 225) * 200 + Math.floor(lv * lv / 2025) * 240
 		)
-	); else if(lv <= 480) return Math.round(
-		(!(lv%5)*0.3 + 1) * (!(lv%15)*0.4 + 1) * (!(lv%45)*0.5 + 1) * (
-			120 + Math.floor(lv/5)*140 + Math.floor(lv*lv/225)*280 + Math.floor(lv*lv/2025)*300
+	);
+	else if (lv <= 480) return Math.round(
+		(!(lv % 5) * 0.3 + 1) * (!(lv % 15) * 0.4 + 1) * (!(lv % 45) * 0.5 + 1) * (
+			120 + Math.floor(lv / 5) * 140 + Math.floor(lv * lv / 225) * 280 + Math.floor(lv * lv / 2025) * 300
 		)
-	); else if(lv <= 600) return Math.round(
-		(!(lv%5)*0.3 + 1) * (!(lv%15)*0.4 + 1) * (!(lv%45)*0.5 + 1) * (
-			120 + Math.floor(lv/5)*180 + Math.floor(lv*lv/225)*360 + Math.floor(lv*lv/2025)*360
+	);
+	else if (lv <= 600) return Math.round(
+		(!(lv % 5) * 0.3 + 1) * (!(lv % 15) * 0.4 + 1) * (!(lv % 45) * 0.5 + 1) * (
+			120 + Math.floor(lv / 5) * 180 + Math.floor(lv * lv / 225) * 360 + Math.floor(lv * lv / 2025) * 360
 		)
-	); else if(lv <= 720) return Math.round(
-		(!(lv%5)*0.3 + 1) * (!(lv%15)*0.4 + 1) * (!(lv%45)*0.5 + 1) * (
-			120 + Math.floor(lv/5)*220 + Math.floor(lv*lv/225)*420 + Math.floor(lv*lv/2025)*420
+	);
+	else if (lv <= 720) return Math.round(
+		(!(lv % 5) * 0.3 + 1) * (!(lv % 15) * 0.4 + 1) * (!(lv % 45) * 0.5 + 1) * (
+			120 + Math.floor(lv / 5) * 220 + Math.floor(lv * lv / 225) * 420 + Math.floor(lv * lv / 2025) * 420
 		)
-	); else return Math.round(
-		(!(lv%5)*0.3 + 1) * (!(lv%15)*0.4 + 1) * (!(lv%45)*0.5 + 1) * (
-			120 + Math.floor(lv/5)*260 + Math.floor(lv*lv/225)*500 + Math.floor(lv*lv/2025)*480
+	);
+	else return Math.round(
+		(!(lv % 5) * 0.3 + 1) * (!(lv % 15) * 0.4 + 1) * (!(lv % 45) * 0.5 + 1) * (
+			120 + Math.floor(lv / 5) * 260 + Math.floor(lv * lv / 225) * 500 + Math.floor(lv * lv / 2025) * 480
 		)
 	);
 }
@@ -3184,41 +3190,46 @@ function stopBGM() {
 
 function playSound(key, loop) {
 	var src, sound;
-	var mute = (loop && $data.muteBGM) || (!loop && $data.muteEff);
-	var volume = loop ? ($data.opts.vb ? $data.opts.vb : 1) : ($data.opts.ve ? $data.opts.ve : 1);
+	// var mute = (loop && $data.muteBGM) || (!loop && $data.muteEff);
 
 	sound = $sound[key] || $sound.missing;
 	if (window.hasOwnProperty("AudioBuffer") && sound instanceof AudioBuffer) {
 		src = audioContext.createBufferSource();
 		src.startedAt = audioContext.currentTime;
 		src.loop = loop;
-		if (mute) {
-			src.buffer = audioContext.createBuffer(2, sound.length, audioContext.sampleRate);
-		} else {
-			src.buffer = sound;
-			var gainNode = typeof(audioContext.createGain) == "function" ? audioContext.createGain() : null;
-			if (gainNode) {
-				gainNode.gain.value = Number(volume) - 1;
-				gainNode.connect(audioContext.destination);
-				src.connect(gainNode);
-			}
+		src.buffer = sound;
+
+		var gainNode = typeof(audioContext.createGain) == "function" ? audioContext.createGain() : null;
+		if (gainNode) {
+			gainNode.connect(audioContext.destination);
+			src.connect(gainNode);
 		}
 		src.connect(audioContext.destination);
 	} else {
 		if (sound.readyState) sound.audio.currentTime = 0;
 		sound.audio.loop = loop || false;
-		sound.audio.volume = volume;
+		sound.audio.volume = 1;
 		src = sound;
 	}
 	if ($_sound[key]) $_sound[key].stop();
 	$_sound[key] = src;
 	src.key = key;
 	src.start();
+
 	/*if(sound.readyState) sound.currentTime = 0;
 	sound.loop = loop || false;
 	sound.volume = ((loop && $data.muteBGM) || (!loop && $data.muteEff)) ? 0 : 1;
 	sound.play();*/
 
+	if (gainNode) {
+		if (loop) {
+			$data.vb = gainNode;
+			$data.vb.gain.value = Number($("#volume-bgm").val()) - 1;
+		} else {
+			$data.ve = gainNode;
+			$data.ve.gain.value = Number($("#volume-effect").val()) - 1;
+		}
+	}
 	return src;
 }
 
@@ -3547,7 +3558,7 @@ function yell(msg) {
 
 function linkConfirm(item) {
 	akConfirm(L['linkWarning'], function(resp) {
-		if(!resp) return;
+		if (!resp) return;
 		window.open(item);
 	}, true);
 }

@@ -435,12 +435,20 @@ exports.Client = function(socket, profile, sid){
 		var R = new Lizard.Tail();
 		
 		if(my.guest){
-			my.equip = {};
-			my.data = new exports.Data();
-			my.money = 0;
-			my.friends = {};
-			my.profile.title = my.nick;
-			R.go({ result: 200 });
+			// Guest IP Ban
+			DB.blocked_ip.findOne([ '_id', my.remoteAddress ]).on(function($ip){
+				if($ip) {
+					JLog.warn("Black IP " + my.remoteAddress);
+				} else {
+					my.equip = {};
+					my.data = new exports.Data();
+					my.money = 0;
+					my.friends = {};
+					my.profile.title = my.nick;
+					R.go({ result: 200 });
+				}
+			});
+			// Gest IP Ban (End)
 		}else DB.users.findOne([ '_id', my.id ]).on(function($user){
 			let first = !$user;
 			let black = first ? "" : $user.black;

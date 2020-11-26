@@ -756,6 +756,15 @@ exports.init = function(_SID, CHAN){
 						$c.socket.close();
 						return;
 					}
+					// IP Black Update
+					MainDB.blocked_ip.findOne([ '_id', $c.remoteAddress ]).on(function($ip){
+						if($ip) {
+							JLog.warn("Black IP " + $c.remoteAddress);
+							$c.sendError(449);
+							$c.socket.close();
+							return;
+						}
+					});
 				}
 				if($c.isAjae === null){
 					$c.sendError(441);
@@ -822,6 +831,7 @@ function joinNewUser($c) {
 		friends: $c.friends,
 		admin: $c.admin,
 		test: global.test,
+		auth: true,
 		caj: $c._checkAjae ? true : false
 	});
 	narrateFriends($c.id, $c.friends, "on");

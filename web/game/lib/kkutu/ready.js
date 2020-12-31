@@ -1239,8 +1239,8 @@ $(document).ready(function() {
 
 		if (curnick != newnick) {
 			akConfirm('닉네임이 <b>' + newnick + '</b>(으)로 변경되었습니다. 정말로 닉네임을 변경하시겠습니까?<br><b>변경 후 1주일 이내에 다시 변경하실 수 없습니다!</b>', function(resp) {
-				$stage.dialog.dressOK.attr('disabled', false);
 				if (!resp) return;
+				$stage.dialog.dressOK.attr('disabled', false);
 				send('nickChange', {"value": newnick, "first": false}, true);
 				$stage.dialog.dress.hide();
 			}, true);

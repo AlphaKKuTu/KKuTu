@@ -21,6 +21,7 @@ const processUserNickChange = ($c, userNick, callback) => {
     userNick = userNick.trim();
 
     const userId = $c.id;
+    
     if (!userId || !userNick) {
         callback(600);
         return
@@ -63,7 +64,7 @@ const processUserNickChange = ($c, userNick, callback) => {
         }
 
         if (!isChangeableNickname($body.time)) {
-            callback(612);
+            callback(611);
             return;
         }
 

@@ -1037,7 +1037,7 @@ function processClientRequest($c, msg) {
         case 'nickChange':
             if ($c.guest) return;
 
-            UserNickChange.processUserNickChange($c.id, msg.value, function(code) {
+            UserNickChange.processUserNickChange($c, msg.value, function(code) {
                 $c.sendError(code);
             });
             break;

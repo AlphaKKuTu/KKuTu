@@ -1162,7 +1162,7 @@ $(document).ready(function() {
 	});
 	$stage.dialog.profileReport.on('click', function(e) {
 		if ($data.guest) {
-			akAlert("손님 계정은 인 게임 신고 기능을 이용하실 수 없습니다. 우측 상단 로그인 버튼을 클릭하여 로그인해 주세요.", true);
+			akAlert("손님 계정은 게임 내 신고 기능을 이용하실 수 없습니다. 우측 상단 로그인 버튼을 클릭하여 로그인해 주세요.", true);
 			return;
 		}
 		var user = $data.users[$data._profiled];
@@ -1178,7 +1178,7 @@ $(document).ready(function() {
 		$("#ask-input").val($data.users[$data._profiled].id);
 		$("#ask-input").select();
 		document.execCommand("copy");
-		akPrompt(`해당 플레이어의 식별 번호가 클립보드에 복사되었습니다.<br>복사된 식별 번호는 다음과 같습니다.`, undefined);
+		akPrompt(`${$data.users[$data._profiled].nick}(${$data.users[$data._profiled].id})의 고유번호는 다음과 같습니다.`, undefined);
 	});
 	$stage.dialog.reportOK.on('click', function(e) {
 		var rsl = [$("#rsl option:selected").text()];
@@ -1242,6 +1242,7 @@ $(document).ready(function() {
 				$stage.dialog.dressOK.attr('disabled', false);
 				if (!resp) return;
 				send('nickChange', {"value": newnick, "first": false}, true);
+				$stage.dialog.dress.hide();
 			}, true);
 		}
 

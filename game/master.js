@@ -67,6 +67,7 @@ exports.ENABLE_ROUND_TIME = ENABLE_ROUND_TIME;
 const ENABLE_FORM = exports.ENABLE_FORM = [ "S", "J" ];
 const MODE_LENGTH = exports.MODE_LENGTH = Const.GAME_TYPE.length;
 const PORT = process.env['KKUTU_PORT'];
+const UserNickChange = require("../sub/UserNickChange");
 
 const webHook = require('discord-webhook-node');
 const hook = new webHook.Webhook(GLOBAL['SANCTION_WEBHOOK']);
@@ -177,10 +178,12 @@ function processAdmin(id, value){
 						case 0:
 							const nick = '바른닉네임' + obj[0].replace(/[^0-9]/g, "").substring(0,4);
 							
-							MainDB.users.update([ '_id', obj[0] ]).set([ 'nick', nick ]).on();
-							MainDB.users.update([ '_id', obj[0] ]).set([ 'exordial', nick ]).on();
+							if(warn['0']) {
+								MainDB.users.update([ '_id', obj[0] ]).set([ 'nick', nick ], [ 'exordial', nick ], [ 'nonickchange', true ]).on();
+							} else {
+								MainDB.users.update([ '_id', obj[0] ]).set([ 'nick', nick ], [ 'exordial', nick ]).on();
+							}
 
-							if(warn['0']) MainDB.users.update([ '_id', obj[0] ]).set([ 'nonickchange', true ]).on();
 							warn['0'] += 1;
 
 							blackNum = warn['0'];
@@ -325,8 +328,7 @@ function processAdmin(id, value){
 										blackDate = addDate(90);
 								}
 							}
-							MainDB.users.update([ '_id', obj[0] ]).set([ 'money', money ]).on();
-							MainDB.users.update([ '_id', obj[0] ]).set([ 'kkutu', JSON.stringify(kkt) ]).on();
+							MainDB.users.update([ '_id', obj[0] ]).set([ 'money', money ], [ 'kkutu', JSON.stringify(kkt) ]).on();
 							warn['8'] += 1;
 
 							blackNum = warn['8'];
@@ -371,13 +373,8 @@ function processAdmin(id, value){
 							blackNum = 1;
 					}
 
-					if(code) {
-						MainDB.users.update([ '_id', obj[0] ]).set([ 'black', blackReason ]).on();
-						MainDB.users.update([ '_id', obj[0] ]).set([ 'time', blackDate ]).on();
-					}
-
+					MainDB.users.update([ '_id', obj[0] ]).set([ 'black', blackReason ], [ 'time', blackDate ], [ 'warnings', JSON.stringify(warn) ]).on();
 					hook.info(`**${oldNick}** (${obj[0]})`, `제재 사유: ${blackReason}`, `**처벌: **${blackNum}차`);
-					MainDB.users.update([ '_id', obj[0] ]).set([ 'warnings', JSON.stringify(warn) ]).on();
 
 					DIC[id].send('notice', { value: `사용자 ${oldNick} (${code}, ${blackNum}차)의 이용제한이 처리되었습니다.` });
 					JLog.info(`[SANCTION] #${obj[0]} banned`);
@@ -441,8 +438,7 @@ function processAdmin(id, value){
 			return null;
 		*/
 		case "unban":
-			MainDB.users.update([ '_id', value ]).set([ 'black', null ]).on();
-			MainDB.users.update([ '_id', value ]).set([ 'time', Number(null) ]).on();
+			MainDB.users.update([ '_id', value ]).set([ 'black', null ], [ 'time', Number(null) ]).on();
 			JLog.info(`[UNBAN] #${value} unbanned`);
 			return null;
 		case "ipunban":
@@ -842,7 +838,7 @@ function joinNewUser($c) {
 
 KKuTu.onClientMessage = function ($c, msg) {
 	if (!msg) return;
-	if($c.nick =="nonick"&&msg.type!="newNick") return;
+	if ($c.nick =="nonick" && msg.type != "nickChange") return;
 	
 	if ($c.passRecaptcha) {
 		processClientRequest($c, msg);
@@ -953,46 +949,6 @@ function processClientRequest($c, msg) {
 			if (!$c.friends[msg.id]) return;
 			$c.removeFriend(msg.id);
 			break;
-		case 'newNick':
-			if (!msg.id || !msg.nick) return;
-			MainDB.users.findOne([ '_id', msg.id ]).on(function($body){
-				if ($body.nick != msg.nick) {
-					return;
-				}
-				else if(!!$body.nonickchange) {
-					$c.sendError(490);
-					return;
-				}
-				$c.refresh().then(function(ref){
-					if(ref.result == 200){
-						MainDB.users.update([ '_id', $c.id ]).set([ 'server', SID ]).on();
-						DIC[$c.id] = $c;
-						DNAME[$c.nick.replace(/\s/g, "")] = $c.id;
-						KKuTu.publish('conn', { user: $c.getData() });
-						narrateFriends($c.id, $c.friends, "on");
-					}
-				});
-			});
-			break;
-		case 'nickChange':
-			if (!msg.id || !msg.nick) return;
-			MainDB.users.findOne([ '_id', msg.id ]).on(function($body){
-				if ($body.nick != msg.nick) {
-					return;
-				}
-				else if(!!$body.nonickchange) {
-					$c.sendError(490);
-					return;
-				}
-				console.log($body.nonickchange);
-				$c.refresh().then(function(ref){
-					if(ref.result == 409){
-						JLog.info("Nickchange "+msg.id+" "+msg.nick);
-						$c.publish('nickChange', $c.getData());
-					}
-				});
-			});
-			break;
 		/*AK IR*/ case 'report':
 			// JLog.info("[AK-DEBUG] Got Response: REPORT");
 			if(!msg.id || !msg.reason) return;
@@ -1078,6 +1034,13 @@ function processClientRequest($c, msg) {
 		case 'test':
 			checkTailUser($c.id, $c.place, msg);
 			break;
+        case 'nickChange':
+            if ($c.guest) return;
+
+            UserNickChange.processUserNickChange($c.id, msg.value, function(code) {
+                $c.sendError(code);
+            });
+            break;
 		default:
 			break;
 	}

@@ -1219,66 +1219,38 @@ $(document).ready(function() {
 		$(e.currentTarget).attr('disabled', true);
 		var curnick = $data.users[$data.id].nick;
 		var newnick = $("#dress-nick").val();
+		var obj = { data: $("#dress-exordial").val() };
+
 		newnick = newnick !== undefined ? newnick.trim() : "";
-		if (newnick.length < 2) {
-			akAlert("닉네임은 두 글자 이상으로 해 주세요!");
+
+		if (newnick.length < 2 || newnick.length > 15 || newnick.length === 0) {
+			akAlert(L['error_600'], true);
 			$(e.currentTarget).attr('disabled', false);
-			return;
-		} else if (newnick.length > 15) {
-			akAlert("닉네임은 15 글자 이하로 해 주세요!");
-			$(e.currentTarget).attr('disabled', false);
-			return;
 		} else if (newnick.length > 0 && !/^[가-힣a-zA-Z0-9][가-힣a-zA-Z0-9 ]*[가-힣a-zA-Z0-9]$/.exec(newnick)) {
-			akAlert("닉네임에는 한글/영문/숫자 및 공백만 사용 가능합니다!");
+			akAlert(L['error_601'], true);
 			$(e.currentTarget).attr('disabled', false);
-			return;
+		} else if (newnick.match(ADVBAD)) {
+			akAlert(L['error_602'], true);
+			$(e.currentTarget).attr('disabled', false);
+		} else if (obj.data.match(ADVBAD)) {
+			akAlert(L['error_604'], true);
+			$(e.currentTarget).attr('disabled', false);
 		}
-		var obj = {
-			data: $("#dress-exordial").val(),
-			nick: newnick
-		};
-		if (!obj.nick || obj.nick.length == 0) delete obj.nick;
+
 		if (curnick != newnick) {
-			akConfirm('닉네임이 변경되었습니다. 정말로 바꾸시겠습니까?', function(resp) {
+			akConfirm('닉네임이 <b>' + newnick + '</b>(으)로 변경되었습니다. 정말로 닉네임을 변경하시겠습니까?<br><b>변경 후 1주일 이내에 다시 변경하실 수 없습니다!</b>', function(resp) {
 				$stage.dialog.dressOK.attr('disabled', false);
 				if (!resp) return;
-				if (newnick.match(ADVBAD)) {
-					akAlert("닉네임에 사용 불가능한 문자가 포함되어 있습니다.", true);
-					return;
-				}
-				$.post("/dressnick", obj, function(res) {
-					if (res.error) return fail(res.error);
-
-					var b = $data.users[$data.id];
-					b.nick = newnick;
-					b.exordial = badWords($("#dress-exordial").val() || "");
-					requestProfile($data.id);
-					$("#account-info").text(newnick);
-					$("#users-item-" + $data.id + " .users-name").text(newnick);
-					send('nickChange', {
-						id: $data.id,
-						nick: newnick
-					}, true);
-					akAlert("변경이 완료되었습니다.", true);
-					$stage.dialog.dress.hide();
-					updateMe();
-					updateUserList(true);
-				});
+				send('nickChange', {"value": newnick, "first": false}, true);
 			}, true);
-		} else {
-			$(e.currentTarget).attr('disabled', true);
-			if (obj.data.match(ADVBAD)) {
-				akAlert("소개 한마디에 사용 불가능한 문자가 포함되어 있습니다.", true);
-				$(e.currentTarget).attr('disabled', false);
-				return;
-			}
-			$.post("/exordial", obj, function(res) {
-				$stage.dialog.dressOK.attr('disabled', false);
-				if (res.error) return fail(res.error);
-				updateMe();
-				$stage.dialog.dress.hide();
-			});
 		}
+
+		$.post("/exordial", obj, function(res) {
+			$stage.dialog.dressOK.attr('disabled', false);
+			if (res.error) return fail(res.error);
+			updateMe();
+			$stage.dialog.dress.hide();
+		});
 	});
 	$("#DressDiag .dress-type").on('click', function(e) {
 		var $target = $(e.currentTarget);

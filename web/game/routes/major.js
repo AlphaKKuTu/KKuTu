@@ -19,7 +19,7 @@ var MainDB = require("../../database");
 var JLog = require("../../../sub/jjlog");
 var Const = require("../../../const");
 
-let bad = new RegExp([
+const bad = new RegExp([
 	"(시|싀|쉬|슈|씨|쒸|씌|쓔|쑤|시이|싀이|쉬이|씨이|쒸이|씌이|찌이|스|쓰|쯔|스으|쓰으|쯔으|수우|쑤우|십|싑|쉽|슙|씹|쓉|씝|쓥|씁|싶|싚|슆|슾|앂|씦|쓒|씊|쑾|ㅅ|ㅆ|ㅅㅣ|ㅅ이|ㅆ이|c|c이|Ⓒ|Ⓒ이|씨이이|시이이|쓰으으|스으으)[^가-힣]*(바|파|발|팔|빠|빨|불|벌|벨|밸|빠|ㅂ|ㅃ|ㅍ)", "(병|뱡|뱅|뱡|빙|븅|븽|뷰웅|비잉|볭|뱽|뼝|뺑|쁑|삥|삉|뺭|뼈엉|쀼웅|ㅂ)[^가-힣]*(신|싄|슨|씬|씐|진|즨|ㅅ|딱|시인|시나)", "(새|섀|세|셰|쌔|쎄|썌|쎼)[^가-힣]*(끼|끠|애끼|에끼)", "(저새|저색|저섀|저세|저셰|저쌔|저쎄|저썌|저쎼)[^가-힣]*(기|애기|에기)", "(개|게|계|걔|깨|께|꼐|꺠)[^가-힣]*(새|세|섀|셰)",
 	"(니|닝|느|노|늬|너|쟤|유|걔|ㄴ)[^가-힣]*(ㄱㅁ|ㄱㅃ|ㅇㅁ|ㅇㅂ|엄마|검마|검|금|미|앰|앱|아빠|엄빠|의미|의비|븨|믜)", "(ㄱㅁ|ㄱㅃ|ㅇㅁ|ㅇㅂ|엄마|검마|앰|아빠|엄빠)[^가-힣]*(죽|뒤|사|돌|없)", "(앰|엠|얨|옘)[^가-힣]*(창|챵|촹|생|섕|셍|솅|쉥)",
 	"(세|섹|색|쉑|쇡|세크|새크|셍|셱|섁|세그|세엑|세액)[^가-힣]*(ㅅ|스|슥|슨|슫|슷|승|로스)",
@@ -183,54 +183,6 @@ exports.run = function(Server, page) {
 		});
 		// res.json({ error: 555 });
 	});
-
-	// POST
-	Server.post("/dressnick", function(req, res) {
-		let text = req.body.data || "";
-		let nick = req.body.nick || "";
-		let pattern = /^[ㄱ-ㅎㅏ-ㅣ가-힣A-Za-z0-9-_\s]{1,15}$/;
-
-		if (req.session.profile) {
-			if (nick.length < 2 || nick.length > 15 || !pattern.test(nick) || text.match(bad) || nick.match(bad) || nick.length == 0) {
-				res.send({
-					error: 400
-				});
-				return;
-			}
-			MainDB.users.findOne(['_id', req.session.profile.id]).on(function($body) {
-				if (!!$body.nonickchange) {
-					res.json({
-						error: 490
-					});
-					return;
-				}
-				MainDB.users.findOne(['nick', nick]).on(function($res) {
-					if (!$res) {
-						text = text.slice(0, 100).trim();
-						nick = nick.trim();
-
-						MainDB.users.update(['_id', req.session.profile.id]).set({
-							'exordial': text,
-							'nick': nick
-						}).on(function($res) {
-							MainDB.session.findOne(['_id', req.session.id]).limit(['profile', true]).on(function($ses) {
-								$ses.profile.title = nick;
-								MainDB.session.update(['_id', req.session.id]).set(['profile', $ses.profile]).on(function($body) {
-									res.send({
-										text: text
-									});
-								});
-							});
-						});
-					} else res.send({
-						error: 460
-					});
-				});
-			});
-		} else res.send({
-			error: 400
-		});
-	});
 	Server.post("/exordial", function(req, res) {
 		let text = req.body.data || "";
 
@@ -246,46 +198,6 @@ exports.run = function(Server, page) {
 				MainDB.users.update(['_id', req.session.profile.id]).set(['exordial', text]).on(function($res) {
 					res.send({
 						text: text
-					});
-				});
-			});
-		} else res.send({
-			error: 400
-		});
-	});
-	Server.post("/newnick", (req, res) => {
-		let nick = req.body.nick || "";
-		let pattern = /^[ㄱ-ㅎㅏ-ㅣ가-힣A-Za-z0-9-_\s]{1,15}$/;
-
-		if (req.session.profile) {
-			if (nick.length < 2 || nick.length > 15 || !pattern.test(nick) || nick.match(bad) || nick.length == 0) {
-				res.send({
-					error: 400
-				});
-				return;
-			}
-			MainDB.users.findOne(['_id', req.session.profile.id]).on(function($body) {
-				if (!!$body.nonickchange) {
-					res.json({
-						error: 490
-					});
-					return;
-				}
-				MainDB.users.findOne(['nick', nick]).on(function($res) {
-					if (!$res) {
-						MainDB.users.findOne(['_id', req.session.profile.id]).on($body => {
-							if ($body.nick != "nonick" && $body.nick) {
-								res.send({
-									error: 400
-								});
-								return;
-							}
-							MainDB.session.update(['_id', req.session.id]).set(['nick', nick]).on();
-							req.session.nick = nick;
-							MainDB.users.update(['_id', req.session.profile.id]).set(['kkutu', $body.kkutu], ['nick', nick]).on($res => res.send());
-						});
-					} else res.send({
-						error: 460
 					});
 				});
 			});

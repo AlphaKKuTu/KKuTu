@@ -239,8 +239,8 @@ function onMessage(data) {
 		case 'recaptcha':
 			var $introText = $("#intro-text");
 			$introText.empty();
-			$introText.html('게스트는 캡챠 인증이 필요합니다.' +
-				'<br/>로그인을 하시면 캡챠 인증을 건너뛰실 수 있습니다.' +
+			$introText.html('게스트는 reCAPTCHA 인증이 필요합니다.' +
+				'<br/>로그인을 하시면 reCAPTCHA 인증을 건너뛰실 수 있습니다.' +
 				'<br/><br/>');
 			$introText.append($('<div class="g-recaptcha" id="recaptcha" style="display: table; margin: 0 auto;"></div>'));
 
@@ -279,43 +279,25 @@ function onMessage(data) {
 				o.find('#newnick-ok').off('click').click(function(e) {
 					var newnick = $("#newnick-input").val();
 					newnick = newnick !== undefined ? newnick.trim() : "";
-					if (newnick.length < 2) {
-						akAlert("닉네임은 두글자 이상으로 해주세요!", true);
+					if (newnick.length < 2 || newnick.length > 15 || newnick.length === 0) {
+						akAlert(L['error_600'], true);
 						$(e.currentTarget).attr('disabled', false);
-						return;
-					} else if (newnick.length > 15) {
-						akAlert("닉네임은 15글자 이하로 해주세요!", true);
-						$(e.currentTarget).attr('disabled', false);
-						return;
 					} else if (newnick.length > 0 && !/^[가-힣a-zA-Z0-9][가-힣a-zA-Z0-9 ]*[가-힣a-zA-Z0-9]$/.exec(newnick)) {
-						akAlert("닉네임에는 한글/영문/숫자 및 공백만 사용 가능합니다!", true);
+						akAlert(L['error_601'], true);
 						$(e.currentTarget).attr('disabled', false);
-						return;
 					} else if (newnick.match(ADVBAD)) {
-						akAlert("닉네임에 사용 불가능한 문자가 포함되어 있습니다.", true);
-						return;
-					}
-					var obj = {
-						nick: newnick
-					};
-					if (!obj.nick || obj.nick.length == 0) delete obj.nick;
-					$.post("/newnick", obj, function(res) {
-						if (res.error) return fail(res.error);
-						$data.nick = newnick;
+						akAlert(L['error_602'], true);
+						$(e.currentTarget).attr('disabled', false);
+					} else {
+						send('nickChange', {"value": newnick, "first": true}, true);
+
 						$("#account-info").text(newnick);
 						$("#users-item-" + $data.id + " .users-name").text(newnick);
-						send('newNick', {
-							id: $data.id,
-							nick: newnick
-						}, true);
-						send('refresh');
-						akAlert("닉네임 설정이 완료되었습니다! 궁금하신 점이 있으시다면 좌측 상단 물음표 아이콘을 클릭하여 도움말을 열어보세요.", true);
-						requestProfile($data.id);
-						updateMe(true, newnick);
-						updateUserList(true);
+
 						o.hide();
 						ov.hide();
-					});
+					}
+					return;
 				});
 				showDialog($stage.dialog.newnick, false);
 				ov.show();
@@ -462,11 +444,11 @@ function onMessage(data) {
 			$data.friends = data.friends;
 			updateCommunity();
 			break;
-		case 'nickChange':
-			$data.setUser(data.id, data);
-			$data.nick = data.nick;
-			updateUserList();
-			break;
+        case 'nickUpdate':
+            $data.setUser(data.user.id, data.user);
+            updateUserList(true);
+            if ($data.id === data.user.id) updateMe();
+            break;
 		case 'starting':
 			loading(L['gameLoading']);
 			break;

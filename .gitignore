@@ -107,3 +107,4 @@ dist
 web/public/js/**
 sub/auth.json
 sub/global.json
+sub/nick.json

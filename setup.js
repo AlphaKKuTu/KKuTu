@@ -20,10 +20,10 @@ const Spawn = require("child_process").spawn;
 const FS = require("fs");
 
 let step = [
-	() => { console.log("[AlphaKKuTu Server Installer] Installing dependencies.."); doStep() },
+	() => { console.log("[KKuTuDotNet Server Installer] Installing dependencies.."); doStep() },
 	() => summon("npm install"),
 	() => summon(`npm install ./ --prefix "./"`),
-	() => { console.log("[AlphaKKuTu Server Installer] Configuring...")},
+	() => { console.log("[KKuTuDotNet Server Installer] Configuring...")},
 	() => removeCmd("acorn"),
 	() => removeCmd("cake"),
 	() => removeCmd("coffee"),
@@ -64,7 +64,7 @@ function doStep(){
 
 	if(next) next();
 	else{
-		console.log("[AlphaKKuTu Server Installer] Done.");
+		console.log("[KKuTuDotNet Server Installer] Done.");
 		process.exit();
 	}
 }

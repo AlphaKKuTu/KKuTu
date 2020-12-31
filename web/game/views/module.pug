@@ -69,7 +69,6 @@ mixin PageHead(min)
 		block
 	link(rel='stylesheet', href='https://cdn.kkutu.xyz/css/in_'+locals.page.replace("/", "_")+'.css?v='+L('version'))
 	script(type='text/javascript', src='https://cdn.kkutu.xyz/js/in_'+locals.page.replace("/", "_")+'.min.js?v='+L('version'))
-	script(data-ad-client="ca-pub-7356923884519790", async, src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js")
 
 mixin SearchBox(arg1, arg2)
 	meta(name='description', content=L('meta_desc', arg1, arg2))

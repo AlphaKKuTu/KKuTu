@@ -277,8 +277,7 @@ function onMessage(data) {
 					style: 'position:absolute;top:0;left:0;width:100%;height:100%;opacity:0.8;background:black;'
 				}));
 				o.find('#newnick-ok').off('click').click(function(e) {
-					var newnick = $("#newnick-input").val();
-					newnick = newnick !== undefined ? newnick.trim() : "";
+					newnick = $("#newnick-input").val() !== undefined ? newnick.trim() : "";
 					if (newnick.length < 2 || newnick.length > 15 || newnick.length === 0) {
 						akAlert(L['error_600'], true);
 						$(e.currentTarget).attr('disabled', false);
@@ -290,18 +289,6 @@ function onMessage(data) {
 						$(e.currentTarget).attr('disabled', false);
 					} else {
 						send('nickChange', {"value": newnick, "first": true}, true);
-
-						if (isNickChanged) {
-							$("#account-info").text(newnick);
-							$("#users-item-" + $data.id + " .users-name").text(newnick);
-							
-							requestProfile($data.id);
-							updateMe(true, newnick);
-							updateUserList(true);
-							
-							o.hide();
-							ov.hide();
-						}
 					}
 					return;
 				});
@@ -678,8 +665,8 @@ function onMessage(data) {
 					akAlert("[#" + data.code + "] " + L['error_' + data.code] + i);
 					break;
 				case 630:
-					isNickChanged = true;
 					akAlert("[#" + data.code + "] " + L['error_' + data.code] + i, true);
+					updateNickChange();
 					break;
 				default:
 					akAlert("[#" + data.code + "] " + L['error_' + data.code] + i, true);
@@ -3553,4 +3540,16 @@ function linkConfirm(item) {
 		if (!resp) return;
 		window.open(item);
 	}, true);
+}
+
+function updateNickChange() {
+	$stage.dialog.newnick.hide();
+	$("#newnick-overlay").hide();
+
+	$("#account-info").text(newnick);
+	$("#users-item-" + $data.id + " .users-name").text(newnick);
+	
+	requestProfile($data.id);
+	updateMe(true, newnick);
+	updateUserList(true);
 }

@@ -112,4 +112,4 @@ var tryReconnect = false;
 var isFirst = true;
 var reConnect = true;
 
-var isNickChanged = false;
+var newnick;

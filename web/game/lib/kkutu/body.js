@@ -277,7 +277,8 @@ function onMessage(data) {
 					style: 'position:absolute;top:0;left:0;width:100%;height:100%;opacity:0.8;background:black;'
 				}));
 				o.find('#newnick-ok').off('click').click(function(e) {
-					newnick = $("#newnick-input").val() !== undefined ? newnick.trim() : "";
+					newnick = $("#newnick-input").val();
+					newnick = newnick !== undefined ? newnick.trim() : "";
 					if (newnick.length < 2 || newnick.length > 15 || newnick.length === 0) {
 						akAlert(L['error_600'], true);
 						$(e.currentTarget).attr('disabled', false);

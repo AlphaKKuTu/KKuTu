@@ -291,15 +291,17 @@ function onMessage(data) {
 					} else {
 						send('nickChange', {"value": newnick, "first": true}, true);
 
-						$("#account-info").text(newnick);
-						$("#users-item-" + $data.id + " .users-name").text(newnick);
-
-						requestProfile($data.id);
-						updateMe(true, newnick);
-						updateUserList(true);
-						
-						o.hide();
-						ov.hide();
+						if (isNickChanged) {
+							$("#account-info").text(newnick);
+							$("#users-item-" + $data.id + " .users-name").text(newnick);
+							
+							requestProfile($data.id);
+							updateMe(true, newnick);
+							updateUserList(true);
+							
+							o.hide();
+							ov.hide();
+						}
 					}
 					return;
 				});
@@ -621,62 +623,66 @@ function onMessage(data) {
 						$data._preQuick = false;
 						break;
 					}
-					case 431:
-					case 432:
-					case 433:
-						$stage.dialog.room.show();
-						akAlert("[#" + data.code + "] " + L['error_' + data.code] + i, true);
-						break;
-					case 444:
-						cBGM = true;
+				case 431:
+				case 432:
+				case 433:
+					$stage.dialog.room.show();
+					akAlert("[#" + data.code + "] " + L['error_' + data.code] + i, true);
+					break;
+				case 444:
+					cBGM = true;
 
-						i = data.message;
-						t = data.time;
+					i = data.message;
+					t = data.time;
 
-						var blackEnds = new Date(parseInt(t));
+					var blackEnds = new Date(parseInt(t));
 
-						loading();
-						$(".kkutu-menu button").hide();
-						$stage.box.me.show();
-						$stage.box.chat.show().width(790).height(190);
-						$stage.chat.height(120);
-						$stage.box.userList.show();
-						$stage.box.roomList.show();
-						$(".kkutu-menu .for-lobby").show();
-						welcome();
-						var o = $stage.dialog.blocked;
-						o.parent().append(ov = $('<div />', {
-							id: 'block-overlay',
-							style: 'position:absolute;top:0;left:0;width:100%;height:100%;opacity:0.8;background:black;'
-						}));
+					loading();
+					$(".kkutu-menu button").hide();
+					$stage.box.me.show();
+					$stage.box.chat.show().width(790).height(190);
+					$stage.chat.height(120);
+					$stage.box.userList.show();
+					$stage.box.roomList.show();
+					$(".kkutu-menu .for-lobby").show();
+					welcome();
+					var o = $stage.dialog.blocked;
+					o.parent().append(ov = $('<div />', {
+						id: 'block-overlay',
+						style: 'position:absolute;top:0;left:0;width:100%;height:100%;opacity:0.8;background:black;'
+					}));
 
-						if (isNaN(blackEnds)) {
-							o.find('#blocked-content').html("<h3><b>운영정책 위반으로 서비스 이용이 정지되었습니다.</b></h3><br><b>차단 사유:</b> " + i + "<br><b>차단 기간:</b> 영구 차단");
-							showDialog($stage.dialog.blocked, false);
-						} else {
-							var black = {
-								year: blackEnds.getFullYear(),
-								month: blackEnds.getMonth() + 1,
-								date: blackEnds.getDate(),
-								hour: blackEnds.getHours(),
-								minute: blackEnds.getMinutes(),
-							};
-							o.find('#blocked-content').html("<h3><b>운영정책 위반으로 서비스 이용이 정지되었습니다.</b></h3><br><b>차단 사유:</b> " + i + "<br><b>차단 기간:</b> " + black.year + "년 " + black.month + "월 " + black.date + "일 " + black.hour + "시 " + black.minute + "분 까지");
-							showDialog($stage.dialog.blocked, false);
-						}
-						playSound('lobby', true);
+					if (isNaN(blackEnds)) {
+						o.find('#blocked-content').html("<h3><b>운영정책 위반으로 서비스 이용이 정지되었습니다.</b></h3><br><b>차단 사유:</b> " + i + "<br><b>차단 기간:</b> 영구 차단");
+						showDialog($stage.dialog.blocked, false);
+					} else {
+						var black = {
+							year: blackEnds.getFullYear(),
+							month: blackEnds.getMonth() + 1,
+							date: blackEnds.getDate(),
+							hour: blackEnds.getHours(),
+							minute: blackEnds.getMinutes(),
+						};
+						o.find('#blocked-content').html("<h3><b>운영정책 위반으로 서비스 이용이 정지되었습니다.</b></h3><br><b>차단 사유:</b> " + i + "<br><b>차단 기간:</b> " + black.year + "년 " + black.month + "월 " + black.date + "일 " + black.hour + "시 " + black.minute + "분 까지");
+						showDialog($stage.dialog.blocked, false);
+					}
+					playSound('lobby', true);
 
-						reConnect = false;
-						break;
-					case 416:
-					case 434:
-					case 435:
-					case 436:
-					case 438:
-						akAlert("[#" + data.code + "] " + L['error_' + data.code] + i);
-						break;
-					default:
-						akAlert("[#" + data.code + "] " + L['error_' + data.code] + i, true);
+					reConnect = false;
+					break;
+				case 416:
+				case 434:
+				case 435:
+				case 436:
+				case 438:
+					akAlert("[#" + data.code + "] " + L['error_' + data.code] + i);
+					break;
+				case 630:
+					isNickChanged = true;
+					akAlert("[#" + data.code + "] " + L['error_' + data.code] + i, true);
+					break;
+				default:
+					akAlert("[#" + data.code + "] " + L['error_' + data.code] + i, true);
 			}
 			break;
 		default:

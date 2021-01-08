@@ -294,6 +294,10 @@ function onMessage(data) {
 						$("#account-info").text(newnick);
 						$("#users-item-" + $data.id + " .users-name").text(newnick);
 
+						requestProfile($data.id);
+						updateMe(true, newnick);
+						updateUserList(true);
+						
 						o.hide();
 						ov.hide();
 					}
